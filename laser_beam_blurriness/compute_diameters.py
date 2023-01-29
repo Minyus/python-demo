@@ -11,7 +11,7 @@ def compute_diameters(img):
     horizontal_diameter_ls = [0] * height
 
     vertical_diameter_ls = [0] * width
-    vertical_position_ls2d = [[0] * (max_target_val + 1)] * width
+    vertical_position_ls2d = [([0] * (max_target_val + 1)) for _ in range(width)]
     max_vertical_val_ls = [0] * width
 
     max_val = 0
@@ -29,6 +29,7 @@ def compute_diameters(img):
             if v > max_horizontal_val:  # increasing
                 if max_horizontal_val < clipped_v:
                     for i in range(max_horizontal_val + 1, clipped_v + 1):
+                        assert horizontal_position_ls[i] == 0
                         horizontal_position_ls[i] = c
                 max_horizontal_val = v
             else:  # decreasing
@@ -41,6 +42,7 @@ def compute_diameters(img):
             if v > max_vertical_val_ls[c]:  # increasing
                 if max_vertical_val_ls[c] < clipped_v:
                     for i in range(max_vertical_val_ls[c] + 1, clipped_v + 1):
+                        assert vertical_position_ls2d[c][i] == 0
                         vertical_position_ls2d[c][i] = r
                 max_vertical_val_ls[c] = v
             else:  # decreasing
@@ -70,8 +72,8 @@ def compute_diameters(img):
 
 if __name__ == "__main__":
 
-    height = 20
-    width = 20
+    height = 10
+    width = 10
 
     img = generate_gaussian(height=height, width=width, max=200)
     compute_diameters(img)
