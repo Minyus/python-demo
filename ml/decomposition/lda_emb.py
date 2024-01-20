@@ -50,21 +50,21 @@ class LDAEmb:
                 self.col_y: y,
             }
         )
-        self.cooccurence_df, self.cooccurence_2darr = self.to_cooccurence_matrix(df)
-        self.emb_2darr = self._lda.fit_transform(self.cooccurence_2darr)
+        cooccurence_df, cooccurence_2darr = self.to_cooccurence_matrix(df)
+        emb_2darr = self._lda.fit_transform(cooccurence_2darr)
         emb_col_list = [
             self.emb_col_format.format(self.col_x, self.col_y, i)
-            for i in range(self.emb_2darr.shape[1])
+            for i in range(emb_2darr.shape[1])
         ]
-        emb_df = pl.DataFrame(self.emb_2darr, schema=emb_col_list)
-        self.emb_df = emb_df.with_columns([self.cooccurence_df[self.col_x]])
+        emb_df = pl.DataFrame(emb_2darr, schema=emb_col_list)
+        self._emb_df = emb_df.with_columns([cooccurence_df[self.col_x]])
 
     def transform(self, x):
 
         df = pl.DataFrame({self.col_x: x})
 
         out_df = df.join(
-            self.emb_df,
+            self._emb_df,
             on=self.col_x,
             how="left",
         )
