@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import polars as pl
 import polars.selectors as cs
 from sklearn.decomposition import LatentDirichletAllocation
@@ -103,6 +104,7 @@ class LDAEmbDf:
         self.pandas_input = False
 
         if not isinstance(df, pl.DataFrame):
+            df = df.copy(deep=True)
             pd_categorical_cols = df.select_dtypes(include="category").columns.tolist()
             self.pd_categories_dict = {}
             for col in pd_categorical_cols:
@@ -112,18 +114,6 @@ class LDAEmbDf:
             self.pandas_input = True
             if self.verbose:
                 print("Input Pandas DataFrame")
-        return df
-
-    def to_pandas(self, df):
-        if self.pandas_input:
-            from pandas.api.types import CategoricalDtype
-
-            col_set = set(list(df.columns))
-            for col, categories in self.pd_categories_dict.items():
-                if col not in col_set:
-                    continue
-                df[col] = df[col].astype(CategoricalDtype(categories=categories))
-
         return df
 
     def fit(self, df):
@@ -154,7 +144,13 @@ class LDAEmbDf:
                     print(f"LDA model fit on {col_x} with {col_y}")
 
     def transform(self, df):
-        df = self.to_polars(df)
+        if isinstance(df, pl.DataFrame):
+            cat_df = df.select(self.cat_cols)
+            keep_df = df.drop(self.cat_cols)
+        else:
+            cat_df_pd = df[self.cat_cols]
+            cat_df = self.to_polars(cat_df_pd)
+            keep_df_pd = df.drop(self.cat_cols, axis=1)
 
         transformed_list = []
         for col_x in self.cat_cols:
@@ -162,7 +158,7 @@ class LDAEmbDf:
                 if col_x == col_y:
                     continue
 
-                x = df[col_x]
+                x = cat_df[col_x]
 
                 transformed_df = self._ldae[(col_x, col_y)].transform(x)
                 if self.verbose:
@@ -171,15 +167,21 @@ class LDAEmbDf:
                     )
                 transformed_list.append(transformed_df)
 
-        original_df = df if self.keep_original else df.drop(self.cat_cols)
+        transformed_df = pl.concat(transformed_list, how="horizontal")
 
-        transformed_df = pl.concat([original_df] + transformed_list, how="horizontal")
-        if self.verbose:
-            print(
-                f"{len(df.columns)} columns were transformed to {len(transformed_df.columns)} columns (keeping {len(original_df.columns)} columns)"
-            )
-
-        return self.to_pandas(transformed_df)
+        if isinstance(df, pl.DataFrame):
+            if self.keep_original:
+                df_list = [df, transformed_df]
+            else:
+                df_list = [keep_df, transformed_df]
+            return pl.concat(df_list, how="horizontal")
+        else:
+            transformed_df_pd = transformed_df.to_pandas()
+            if self.keep_original:
+                pd_df_list = [df, transformed_df_pd]
+            else:
+                pd_df_list = [keep_df_pd, transformed_df_pd]
+            return pd.concat(pd_df_list, axis=1)
 
 
 def test_ldaemb():
