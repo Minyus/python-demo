@@ -100,21 +100,35 @@ class LDAEmbDf:
         return self.transform(df)
 
     def to_polars(self, df):
-        pandas_input = False
+        self.pandas_input = False
 
         if not isinstance(df, pl.DataFrame):
             pd_categorical_cols = df.select_dtypes(include="category").columns.tolist()
+            self.pd_categorical_dict = {}
             for col in pd_categorical_cols:
+                self.pd_categories_dict[col] = df[col].cat.categories
                 df[col] = df[col].astype(str)
             df = pl.from_pandas(df)
-            pandas_input = True
+            self.pandas_input = True
             if self.verbose:
                 print("Input Pandas DataFrame")
-        return df, pandas_input
+        return df
+
+    def to_pandas(self, df):
+        if self.pandas_input:
+            from pandas.api.types import CategoricalDtype
+
+            col_set = set(list(df.columns))
+            for col, categories in self.pd_categories_dict.items():
+                if col not in col_set:
+                    continue
+                df[col] = df[col].astype(CategoricalDtype(categories=categories))
+
+        return df
 
     def fit(self, df):
 
-        df, _ = self.to_polars(df)
+        df = self.to_polars(df)
 
         if self.cat_cols is None:
             self.cat_cols = list(df.select(cs.string(include_categorical=True)).columns)
@@ -140,7 +154,7 @@ class LDAEmbDf:
                     print(f"LDA model fit on {col_x} with {col_y}")
 
     def transform(self, df):
-        df, pandas_input = self.to_polars(df)
+        df = self.to_polars(df)
 
         transformed_list = []
         for col_x in self.cat_cols:
@@ -165,9 +179,7 @@ class LDAEmbDf:
                 f"{len(df.columns)} columns were transformed to {len(transformed_df.columns)} columns (keeping {len(original_df.columns)} columns)"
             )
 
-        if pandas_input:
-            return transformed_df.to_pandas()
-        return transformed_df
+        return self.to_pandas(transformed_df)
 
 
 def test_ldaemb():
