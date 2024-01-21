@@ -104,7 +104,7 @@ class LDAEmbDf:
 
         if not isinstance(df, pl.DataFrame):
             pd_categorical_cols = df.select_dtypes(include="category").columns.tolist()
-            self.pd_categorical_dict = {}
+            self.pd_categories_dict = {}
             for col in pd_categorical_cols:
                 self.pd_categories_dict[col] = df[col].cat.categories
                 df[col] = df[col].astype(str)
