@@ -30,25 +30,17 @@ class LDAEmb:
 
         col_list = [col_x, col_y]
 
-        try:
-            count_df = (
-                df.group_by(col_list)
-                .len()
-                .sort(by=[col_x] if minimize_sort else col_list)
-            )
-            cooccurence_df = count_df.pivot(
-                index=col_x, columns=col_y, values="len"
-            ).fill_null(0)
+        """
+        "count" renamed to "len" in polars 0.20.5
+        https://github.com/pola-rs/polars/releases/tag/py-0.20.5
+        """
+        _agg = "count" if hasattr(df.group_by(col_list), "count") else "len"
 
-        except Exception:
-            count_df = (
-                df.group_by(col_list)
-                .count()
-                .sort(by=[col_x] if minimize_sort else col_list)
-            )
-            cooccurence_df = count_df.pivot(
-                index=col_x, columns=col_y, values="count"
-            ).fill_null(0)
+        count_df = getattr(df.group_by(col_list), _agg)()
+        count_df = count_df.sort(by=[col_x] if minimize_sort else col_list)
+        cooccurence_df = count_df.pivot(
+            index=col_x, columns=col_y, values=_agg
+        ).fill_null(0)
 
         cooccurence_2darr = cooccurence_df.drop(col_x).to_numpy()
         return cooccurence_df, cooccurence_2darr
@@ -156,11 +148,9 @@ class LDAEmbDf:
         return transformed_df
 
 
-if __name__ == "__main__":
+def test_ldaemb():
+    """Test LDAEmb"""
     from numpy.testing import assert_array_almost_equal
-    from polars.testing import assert_frame_equal
-
-    """ Test LDAEmb """
 
     num_rows = 100
     num_cats_1 = 7
@@ -188,7 +178,10 @@ if __name__ == "__main__":
         ldae.transform(np.array([-1])), np.array([[np.NaN] * n_components])
     )
 
-    """ Test LDAEmbDf """
+
+def test_ldaembdf():
+    """Test LDAEmbDf"""
+    from polars.testing import assert_frame_equal
 
     num_rows = 100
     num_cats = 5
@@ -214,3 +207,9 @@ if __name__ == "__main__":
 
     transformed_df = ldaed.transform(df)
     assert_frame_equal(fit_transformed_df, transformed_df)
+
+
+if __name__ == "__main__":
+
+    test_ldaemb()
+    test_ldaembdf()
