@@ -85,11 +85,13 @@ class LDAEmbDf:
     def __init__(
         self,
         cat_cols=None,
+        keep_original=True,
         verbose=True,
         **kwargs,
     ):
 
         self.cat_cols = cat_cols
+        self.keep_original = keep_original
         self.verbose = verbose
         self.kwargs = kwargs
 
@@ -154,7 +156,9 @@ class LDAEmbDf:
                         f"From {col_x}, LDA model fit with {col_y} generated: {transformed_df.columns}"
                     )
                 transformed_list.append(transformed_df)
-        original_df = df.drop(self.cat_cols)
+
+        original_df = df if self.keep_original else df.drop(self.cat_cols)
+
         transformed_df = pl.concat([original_df] + transformed_list, how="horizontal")
         if self.verbose:
             print(
