@@ -113,6 +113,9 @@ class LDAEmbDf:
         if self.cat_cols is None:
             self.cat_cols = list(df.select(cs.string(include_categorical=True)).columns)
 
+        assert len(self.cat_cols) >= 2, (
+            "Specify 2 or more categorical columns in: " + df.schema
+        )
         self._ldae = {}
 
         for col_x in self.cat_cols:
