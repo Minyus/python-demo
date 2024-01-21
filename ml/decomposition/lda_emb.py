@@ -76,6 +76,7 @@ class LDAEmb:
             on=self.col_x,
             how="left",
         )
+        assert len(out_df) == len(df), f"{len(out_df)} != {len(df)}"
         out_df = out_df.drop([self.col_x])
         if isinstance(x, np.ndarray):
             return out_df.to_numpy()
@@ -144,6 +145,7 @@ class LDAEmbDf:
                     print(f"LDA model fit on {col_x} with {col_y}")
 
     def transform(self, df):
+        num_rows = len(df)
         if isinstance(df, pl.DataFrame):
             cat_df = df.select(self.cat_cols)
             keep_df = df.drop(self.cat_cols)
@@ -161,6 +163,9 @@ class LDAEmbDf:
                 x = cat_df[col_x]
 
                 transformed_df = self._ldae[(col_x, col_y)].transform(x)
+                assert (
+                    len(transformed_df) == num_rows
+                ), f"{len(transformed_df)} != {num_rows}"
                 if self.verbose:
                     print(
                         f"From {col_x}, LDA model fit with {col_y} generated: {transformed_df.columns}"
@@ -168,20 +173,25 @@ class LDAEmbDf:
                 transformed_list.append(transformed_df)
 
         transformed_df = pl.concat(transformed_list, how="horizontal")
+        assert len(transformed_df) == num_rows, f"{len(transformed_df)} != {num_rows}"
 
         if isinstance(df, pl.DataFrame):
             if self.keep_original:
                 df_list = [df, transformed_df]
             else:
                 df_list = [keep_df, transformed_df]
-            return pl.concat(df_list, how="horizontal")
+            out_df = pl.concat(df_list, how="horizontal")
+            assert len(out_df) == num_rows, f"{len(out_df)} != {num_rows}"
+            return out_df
         else:
-            transformed_df_pd = transformed_df.to_pandas()
+            transformed_df_pd = transformed_df.to_pandas().reset_index(drop=True)
             if self.keep_original:
-                pd_df_list = [df, transformed_df_pd]
+                pd_df_list = [df.reset_index(drop=True), transformed_df_pd]
             else:
-                pd_df_list = [keep_df_pd, transformed_df_pd]
-            return pd.concat(pd_df_list, axis=1)
+                pd_df_list = [keep_df_pd.reset_index(drop=True), transformed_df_pd]
+            out_df = pd.concat(pd_df_list, axis=1)
+            assert len(out_df) == num_rows, f"{len(out_df)} != {num_rows}"
+            return out_df
 
 
 def test_ldaemb():
