@@ -69,7 +69,9 @@ class LDAEmb:
             how="left",
         )
         out_df = out_df.drop([self.col_x])
-        return out_df.to_numpy()
+        if isinstance(x, np.ndarray):
+            return out_df.to_numpy()
+        return out_df
 
 
 if __name__ == "__main__":
@@ -85,7 +87,6 @@ if __name__ == "__main__":
 
     ldae = LDAEmb(
         n_components=n_components,
-        learning_method="batch",
         random_state=rng,
     )
 
