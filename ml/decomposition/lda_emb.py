@@ -1,5 +1,6 @@
 import numpy as np
 import polars as pl
+import polars.selectors as cs
 from sklearn.decomposition import LatentDirichletAllocation
 
 
@@ -76,12 +77,21 @@ class LDAEmb:
 class LDAEmbDf:
     def __init__(
         self,
-        cat_cols=[],
-        emb_col_format="{}_{}_e{:03d}",
+        cat_cols=None,
         **kwargs,
     ):
 
         self.cat_cols = cat_cols
+        self.kwargs = kwargs
+
+    def fit_transform(self, df):
+        self.fit(df)
+        return self.transform(df)
+
+    def fit(self, df):
+        if self.cat_cols is None:
+            self.cat_cols = list(df.select(cs.string(include_categorical=True)).columns)
+
         self._ldae = {}
 
         for col_x in self.cat_cols:
@@ -89,21 +99,8 @@ class LDAEmbDf:
                 if col_x == col_y:
                     continue
 
-                ldae = LDAEmb(
-                    col_x=col_x, col_y=col_y, emb_col_format=emb_col_format, **kwargs
-                )
+                ldae = LDAEmb(col_x=col_x, col_y=col_y, **self.kwargs)
                 self._ldae[(col_x, col_y)] = ldae
-
-    def fit_transform(self, df):
-        self.fit(df)
-        return self.transform(df)
-
-    def fit(self, df):
-
-        for col_x in self.cat_cols:
-            for col_y in self.cat_cols:
-                if col_x == col_y:
-                    continue
 
                 x = df[col_x]
                 y = df[col_y]
@@ -174,7 +171,7 @@ if __name__ == "__main__":
     df_dict["index"] = np.arange(num_rows)
     df = pl.DataFrame(df_dict)
     ldaed = LDAEmbDf(
-        cat_cols=cat_cols,
+        cat_cols=None,
         n_components=n_components,
         random_state=rng,
     )
