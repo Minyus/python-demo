@@ -88,10 +88,20 @@ class LDAEmbDf:
         self.fit(df)
         return self.transform(df)
 
-    def fit(self, df):
+    def to_polars(self, df):
+        pandas_input = False
 
         if not isinstance(df, pl.DataFrame):
+            pd_categorical_cols = df.select_dtypes().columns.tolist()
+            for col in pd_categorical_cols:
+                df[col] = df[col].astype(str)
             df = pl.from_pandas(df)
+            pandas_input = True
+        return df, pandas_input
+
+    def fit(self, df):
+
+        df, _ = self.to_polars(df)
 
         if self.cat_cols is None:
             self.cat_cols = list(df.select(cs.string(include_categorical=True)).columns)
@@ -112,10 +122,7 @@ class LDAEmbDf:
                 self._ldae[(col_x, col_y)].fit(x, y)
 
     def transform(self, df):
-        pandas_input = False
-        if not isinstance(df, pl.DataFrame):
-            df = pl.from_pandas(df)
-            pandas_input = True
+        df, pandas_input = self.to_polars(df)
 
         transformed_list = []
         for col_x in self.cat_cols:
