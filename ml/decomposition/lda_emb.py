@@ -29,12 +29,27 @@ class LDAEmb:
         minimize_sort = self.minimize_sort
 
         col_list = [col_x, col_y]
-        count_df = (
-            df.group_by(col_list).len().sort(by=[col_x] if minimize_sort else col_list)
-        )
-        cooccurence_df = count_df.pivot(
-            index=col_x, columns=col_y, values="len"
-        ).fill_null(0)
+
+        try:
+            count_df = (
+                df.group_by(col_list)
+                .len()
+                .sort(by=[col_x] if minimize_sort else col_list)
+            )
+            cooccurence_df = count_df.pivot(
+                index=col_x, columns=col_y, values="len"
+            ).fill_null(0)
+
+        except Exception:
+            count_df = (
+                df.group_by(col_list)
+                .count()
+                .sort(by=[col_x] if minimize_sort else col_list)
+            )
+            cooccurence_df = count_df.pivot(
+                index=col_x, columns=col_y, values="count"
+            ).fill_null(0)
+
         cooccurence_2darr = cooccurence_df.drop(col_x).to_numpy()
         return cooccurence_df, cooccurence_2darr
 
@@ -92,7 +107,7 @@ class LDAEmbDf:
         pandas_input = False
 
         if not isinstance(df, pl.DataFrame):
-            pd_categorical_cols = df.select_dtypes().columns.tolist()
+            pd_categorical_cols = df.select_dtypes(include="category").columns.tolist()
             for col in pd_categorical_cols:
                 df[col] = df[col].astype(str)
             df = pl.from_pandas(df)
