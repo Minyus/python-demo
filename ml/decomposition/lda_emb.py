@@ -85,10 +85,12 @@ class LDAEmbDf:
     def __init__(
         self,
         cat_cols=None,
+        verbose=True,
         **kwargs,
     ):
 
         self.cat_cols = cat_cols
+        self.verbose = verbose
         self.kwargs = kwargs
 
     def fit_transform(self, df):
@@ -104,6 +106,8 @@ class LDAEmbDf:
                 df[col] = df[col].astype(str)
             df = pl.from_pandas(df)
             pandas_input = True
+            if self.verbose:
+                print("Input Pandas DataFrame")
         return df, pandas_input
 
     def fit(self, df):
@@ -130,6 +134,8 @@ class LDAEmbDf:
                 y = df[col_y]
 
                 self._ldae[(col_x, col_y)].fit(x, y)
+                if self.verbose:
+                    print(f"LDA model fit on {col_x} with {col_y}")
 
     def transform(self, df):
         df, pandas_input = self.to_polars(df)
@@ -143,11 +149,20 @@ class LDAEmbDf:
                 x = df[col_x]
 
                 transformed_df = self._ldae[(col_x, col_y)].transform(x)
+                if self.verbose:
+                    print(
+                        f"From {col_x}, LDA model fit with {col_y} generated: {transformed_df.columns}"
+                    )
                 transformed_list.append(transformed_df)
         original_df = df.drop(self.cat_cols)
         transformed_df = pl.concat([original_df] + transformed_list, how="horizontal")
+        if self.verbose:
+            print(
+                f"{len(df.columns)} columns were transformed to {len(transformed_df.columns)} columns (keeping {len(original_df.columns)} columns)"
+            )
+
         if pandas_input:
-            return df.to_pandas()
+            return transformed_df.to_pandas()
         return transformed_df
 
 
