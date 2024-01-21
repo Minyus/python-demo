@@ -89,6 +89,10 @@ class LDAEmbDf:
         return self.transform(df)
 
     def fit(self, df):
+
+        if not isinstance(df, pl.DataFrame):
+            df = pl.from_pandas(df)
+
         if self.cat_cols is None:
             self.cat_cols = list(df.select(cs.string(include_categorical=True)).columns)
 
@@ -108,6 +112,10 @@ class LDAEmbDf:
                 self._ldae[(col_x, col_y)].fit(x, y)
 
     def transform(self, df):
+        pandas_input = False
+        if not isinstance(df, pl.DataFrame):
+            df = pl.from_pandas(df)
+            pandas_input = True
 
         transformed_list = []
         for col_x in self.cat_cols:
@@ -120,7 +128,10 @@ class LDAEmbDf:
                 transformed_df = self._ldae[(col_x, col_y)].transform(x)
                 transformed_list.append(transformed_df)
         original_df = df.drop(self.cat_cols)
-        return pl.concat([original_df] + transformed_list, how="horizontal")
+        transformed_df = pl.concat([original_df] + transformed_list, how="horizontal")
+        if pandas_input:
+            return df.to_pandas()
+        return transformed_df
 
 
 if __name__ == "__main__":
