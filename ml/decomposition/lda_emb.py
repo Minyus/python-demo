@@ -12,6 +12,7 @@ class LDAEmb:
         col_y="col_y",
         emb_col_format="{}_{}_e{:03d}",
         minimize_sort=False,
+        emb_dtype="float32",
         **kwargs,
     ):
         """
@@ -22,6 +23,7 @@ class LDAEmb:
         self.col_y = col_y
         self.emb_col_format = emb_col_format
         self.minimize_sort = minimize_sort
+        self.emb_dtype = emb_dtype
         self._lda = LatentDirichletAllocation(**kwargs)
 
     def to_cooccurence_matrix(self, df):
@@ -60,6 +62,10 @@ class LDAEmb:
         )
         cooccurence_df, cooccurence_2darr = self.to_cooccurence_matrix(df)
         emb_2darr = self._lda.fit_transform(cooccurence_2darr)
+        if self.emb_dtype is not None:
+            assert isinstance(self.emb_dtype, str)
+            assert hasattr(np, self.emb_dtype)
+            emb_2darr = emb_2darr.astype(getattr(np, self.emb_dtype))
         emb_col_list = [
             self.emb_col_format.format(self.col_x, self.col_y, i)
             for i in range(emb_2darr.shape[1])
@@ -87,7 +93,7 @@ class LDAEmbDf:
     def __init__(
         self,
         cat_cols=None,
-        keep_original=True,
+        keep_original=False,
         verbose=True,
         **kwargs,
     ):
