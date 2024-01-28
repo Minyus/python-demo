@@ -234,31 +234,48 @@ def test_ldaemb():
 def test_ldaembdf():
     """Test LDAEmbDf"""
     from polars.testing import assert_frame_equal
+    from pandas.testing import assert_frame_equal as pd_assert_frame_equal
 
-    num_rows = 100
+    num_rows = 10
     num_cats = 5
     n_components = 3
 
     rng = np.random.RandomState(0)
 
-    cat_cols = ["col_1", "col_2", "col_3"]
+    cat_cols = ["col_1", "col_2"]
     df_dict = {
         cat_col: rng.randint(num_cats, size=num_rows).astype(str)
         for cat_col in cat_cols
     }
     df_dict["index"] = np.arange(num_rows)
-    df = pl.DataFrame(df_dict)
-    ldaed = LDAEmbDf(
-        cat_cols=None,
-        n_components=n_components,
-        random_state=rng,
-    )
+    df_dict["test_flag"] = df_dict["index"] < 3
 
-    fit_transformed_df = ldaed.fit_transform(df)
-    print(fit_transformed_df)
+    for df in [pl.DataFrame(df_dict), pd.DataFrame(df_dict)]:
+        ldaed = LDAEmbDf(
+            cat_cols=None,
+            n_components=n_components,
+            random_state=rng,
+        )
 
-    transformed_df = ldaed.transform(df)
-    assert_frame_equal(fit_transformed_df, transformed_df)
+        fit_transformed_df = ldaed.fit_transform(df)
+        # print(fit_transformed_df)
+
+        transformed_df = ldaed.transform(df)
+        assert type(fit_transformed_df) == type(transformed_df), (
+            type(fit_transformed_df).__str__() + "\n!=\n" + type(transformed_df)
+        )
+
+        other_cols = [col for col in df.columns if col not in cat_cols]
+        if isinstance(df, pl.DataFrame):
+            assert_frame_equal(fit_transformed_df, transformed_df)
+            assert_frame_equal(
+                fit_transformed_df.select(other_cols), df.select(other_cols)
+            )
+        else:
+            pd_assert_frame_equal(fit_transformed_df, transformed_df)
+            pd_assert_frame_equal(
+                fit_transformed_df[other_cols], transformed_df[other_cols]
+            )
 
 
 if __name__ == "__main__":
