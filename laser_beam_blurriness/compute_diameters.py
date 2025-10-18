@@ -57,10 +57,12 @@ def compute_diameters(img):
                 max_c = c
                 max_val = v
 
+    horizontal_position_ls_arr = np.array(horizontal_position_ls)
+    vertical_position_ls2d_arr = np.array(vertical_position_ls2d)
     summary = "\n".join(
         [
-            f"horizontal_position_ls: {horizontal_position_ls}",
-            f"vertical_position_ls: {vertical_position_ls2d}",
+            f"horizontal_position_ls:\n{horizontal_position_ls_arr}",
+            f"vertical_position_ls:\n{vertical_position_ls2d_arr}",
             f"horizontal_diameter_ls: {horizontal_diameter_ls}",
             f"vertical_diameter_ls: {vertical_diameter_ls}",
             f"max_val: {max_val} at {max_r, max_c}",
@@ -76,4 +78,5 @@ if __name__ == "__main__":
     width = 10
 
     img = generate_gaussian(height=height, width=width, max=200)
+    print(img)
     compute_diameters(img)
