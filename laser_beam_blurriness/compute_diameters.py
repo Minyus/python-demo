@@ -57,12 +57,17 @@ def compute_diameters(img):
                 max_c = c
                 max_val = v
 
-    horizontal_position_ls_arr = np.array(horizontal_position_ls)
-    vertical_position_ls2d_arr = np.array(vertical_position_ls2d)
+    horizontal_position_ls_desc = ", ".join(
+        f"{v}@{p}" for v, p in enumerate(horizontal_position_ls) if p
+    )
+    vertical_position_ls2d_desc = "\n".join(
+        ", ".join(f"{v}@{p}" for v, p in enumerate(horizontal_position_ls) if p)
+        for horizontal_position_ls in vertical_position_ls2d
+    )
     summary = "\n".join(
         [
-            f"horizontal_position_ls:\n{horizontal_position_ls_arr}",
-            f"vertical_position_ls:\n{vertical_position_ls2d_arr}",
+            f"horizontal_position_ls (PixelVal@PositionIdx):\n{horizontal_position_ls_desc}",
+            f"vertical_position_ls:\n{vertical_position_ls2d_desc}",
             f"horizontal_diameter_ls: {horizontal_diameter_ls}",
             f"vertical_diameter_ls: {vertical_diameter_ls}",
             f"max_val: {max_val} at {max_r, max_c}",
