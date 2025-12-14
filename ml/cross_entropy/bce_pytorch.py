@@ -3,7 +3,8 @@ import torch.nn.functional as F
 
 """ multi-labels (binary) """
 
-logits = torch.randn(2)
+# logits = torch.randn(2)
+logits = torch.tensor([-1.4710, 1.6896], dtype=torch.float32)
 labels = torch.tensor([0.0, 1.0], dtype=torch.float32)
 
 raw_bce = F.binary_cross_entropy_with_logits(logits, labels, reduction="none")
